@@ -5,9 +5,13 @@
   <img alt="GitHub last commit (branch)" src="https://img.shields.io/github/last-commit/jadenzaleski/bible-translations/development?style=flat-square&label=last%20development%20commit">
 </p>
 
-<p>Here you can find all of The Holy Bible translations that are availabe at <a href="https://www.biblegateway.com">Bible Gateway</a>, in JSON and SQL format.
-Text is downloaded with the help of the <a href="https://github.com/daniel-tran/meaningless">meaningless</a> package. All files were generated with the <code>bible_gateway.py</code> script and feel free to create any issues or pull requests as needed.
+<p>Here you can generate a formatted version of all the Holy Bible translations that are availabe at <a href="https://www.biblegateway.com">Bible Gateway</a>, in JSON and SQL format.
+Text is downloaded with the help of the <a href="https://github.com/daniel-tran/meaningless">meaningless</a> package. Run the <code>bible_gateway.py</code> script to get started. Feel free to create any issues or pull requests as needed.
 I will add more versions as they are supported by the <a href="https://github.com/daniel-tran/meaningless">meaningless</a> package.</p>
+
+> [!WARNING]
+> Due to copyright issues, all formatted bible text has been removed from the repository. If you want to use the
+> formatted files, you will have to generate them yourself with the script.
 
 > [!IMPORTANT]
 > This repository is **actively under development**. You can follow along in the <a href="https://github.com/users/jadenzaleski/projects/7">bible-translations project</a>. You’re welcome to open issues for feature ideas or bug reports.
@@ -53,12 +57,23 @@ If you would like more resources, I have found that the
 
 # Disclaimer
 
-The Bible text files provided in this repository are for educational, personal, non-commercial, and reference purposes only.
+The Bible text formatted by the script(s) in this repository is for educational, personal, non-commercial, and reference
+purposes only.
 
-Many of the Bible translations listed here are protected by copyright and may not be legally redistributed or used in other projects without explicit permission from their respective copyright holders.
+Many of the Bible translations listed here are protected by copyright and may not be legally redistributed or used in
+other projects without explicit permission from their respective copyright holders.
 
-Bible text is retrieved via the [meaningless](https://github.com/daniel-tran/meaningless) package, which sources content from [BibleGateway.com](https://www.biblegateway.com). Use of this content may be subject to BibleGateway’s Terms of Service and the individual licenses for each Bible translation. Some translations (such as KJV, ASV, YLT, and WEB) are in the public domain and may be freely used. Others (e.g., ESV, NIV, NLT, NASB, etc.) are licensed, and require permission for redistribution or certain uses.
+Bible text is retrieved via the [meaningless](https://github.com/daniel-tran/meaningless) package, which sources content
+from [BibleGateway.com](https://www.biblegateway.com). Use of this content may be subject to BibleGateway's Terms of
+Service and the individual licenses for each Bible translation. Some translations (such as KJV, ASV, YLT, and WEB) are
+in the public domain and may be freely used. Others (e.g., ESV, NIV, NLT, NASB, etc.) are licensed, and require
+permission for redistribution or certain uses.
 
-You are solely responsible for ensuring you have the proper rights or licenses before using, distributing, or publishing any of these translations.
+You are solely responsible for ensuring you have the proper rights or licenses before using, distributing, or publishing
+any of these translations.
+
+If you fork this repository, you must maintain compliance with all applicable copyright laws and licensing requirements.
+Forking does not grant you any additional rights to distribute or use copyrighted Bible translations beyond what is
+explicitly permitted by their respective copyright holders.
 
 This project does not claim ownership of any Bible text and is not affiliated with BibleGateway or any copyright holder.
