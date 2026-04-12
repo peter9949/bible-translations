@@ -9,6 +9,39 @@
 Text is downloaded with the help of the <a href="https://github.com/daniel-tran/meaningless">meaningless</a> package. Run the <code>bible_gateway.py</code> script to get started. Feel free to create any issues or pull requests as needed.
 I will add more versions as they are supported by the <a href="https://github.com/daniel-tran/meaningless">meaningless</a> package.</p>
 
+## Polish Translations via Biblia-Online.pl
+
+If you want full Polish Bible datasets, use <code>biblia_online_polish.py</code>.
+It downloads text from <a href="https://biblia-online.pl">biblia-online.pl</a> and writes output in the same JSON format used by this repository.
+
+### Quick start
+
+<pre><code>python biblia_online_polish.py --translation-code BW
+</code></pre>
+
+<pre><code>pip install requests beautifulsoup4
+</code></pre>
+
+### Examples
+
+<pre><code># Biblia Jakuba Wujka
+python biblia_online_polish.py --translation-code WUJ
+
+# Uwspółcześniona Biblia Gdańska
+python biblia_online_polish.py --translation-code UBG
+
+# Direct custom slug from biblia-online.pl
+python biblia_online_polish.py --translation-code CUSTOM --translation-slug Warszawska
+</code></pre>
+
+### Notes
+
+<ul>
+  <li>This script uses HTML parsing (no public API was found).</li>
+  <li>Please respect site terms, translation copyrights, and fair-use limits.</li>
+  <li>Use <code>--max-books</code> for quick testing before full downloads.</li>
+</ul>
+
 > [!WARNING]
 > Due to copyright issues, all formatted bible text has been removed from the repository. If you want to use the
 > formatted files, you will have to generate them yourself with the script.
