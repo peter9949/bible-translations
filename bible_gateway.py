@@ -1,6 +1,5 @@
 import json
 import os
-import re
 import sys
 
 import meaningless.utilities.common as common
@@ -41,7 +40,7 @@ def download(book_name, folder, v):
 
 
 # combine all the books into one json file
-def combine(folder, n):
+def combine(folder, n, translation_code):
     combined_data = {}
 
     # Iterate through all files in the folder
@@ -50,7 +49,7 @@ def combine(folder, n):
             fp = os.path.join(folder, file_name)
 
             try:
-                with open(fp, 'r') as f:
+                with open(fp, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     # Exclude the "Info" section if present
                     if "Info" in data:
@@ -67,11 +66,42 @@ def combine(folder, n):
                 print(f"Error parsing {file_name}: {e}")
                 continue
 
-    # Write the combined data to the output file in order
-    ordered_data = {book: combined_data[book] for book in books if book in combined_data}
+    # Write the combined data to the output file in the requested structure.
+    translation_name = BIBLE_TRANSLATIONS.get(translation_code, translation_code)
+    formatted = {
+        "translation": f"{translation_code}: {translation_name}",
+        "books": []
+    }
 
-    with open(n, 'w') as out_file:
-        json.dump(ordered_data, out_file, indent=4)
+    for book in books:
+        if book not in combined_data:
+            continue
+
+        chapters = combined_data[book]
+        chapter_list = []
+
+        for chapter_key in sorted(chapters.keys(), key=lambda x: int(x)):
+            verses = chapters[chapter_key]
+            verse_list = []
+
+            for verse_key in sorted(verses.keys(), key=lambda x: int(x)):
+                verse_list.append({
+                    "verse": int(verse_key),
+                    "text": verses[verse_key]
+                })
+
+            chapter_list.append({
+                "chapter": int(chapter_key),
+                "verses": verse_list
+            })
+
+        formatted["books"].append({
+            "name": book,
+            "chapters": chapter_list
+        })
+
+    with open(n, 'w', encoding='utf-8') as out_file:
+        json.dump(formatted, out_file, indent=4, ensure_ascii=False)
 
 
 # a text progress bar
@@ -123,41 +153,9 @@ def generate_bible(bible_translation, show_progress=True):
             print("\r[+] Download complete.")
 
     # combine all books
-    combine(path, root + bible_translation + "_bible.json")
+    combine(path, root + bible_translation + "_bible.json", bible_translation)
     if show_progress:
         print("[+] All books combined into: " + root + bible_translation + "_bible.json")
-    # generate sql
-    out_name = root + bible_translation + "_bible.sql"
-    in_name = root + bible_translation + "_bible.json"
-    with open(out_name, 'w') as output_file:
-        with open(in_name, 'r') as input_file:
-            output_file.write(
-                "create table " + bible_translation.lower() + "(book_id int not null, book varchar(255) not null, "
-                                                              "chapter "
-                                                              "int not null, verse int not null, text varchar(1000) not "
-                                                              "null, primary key (book_id, chapter, verse));\n\n")
-
-            cd = json.load(input_file)
-
-            for book, chapters in cd.items():
-                for chapter, verses in chapters.items():
-                    output_file.write(
-                        "INSERT INTO " + bible_translation.lower() + "(book_id, book, chapter, verse, text) "
-                                                                     "VALUES\n")
-                    for verse_num, verse_content in verses.items():
-                        book_id = books.index(book) + 1
-                        verse_content = re.sub(r'\s+', ' ', verse_content)
-                        verse_content = verse_content.replace("'", "''")
-                        output_file.write("(" + str(
-                            book_id) + ",'" + book + "'," + chapter + "," + verse_num + ",'" + verse_content + "')")
-                        # Check if it's the last line
-                        if verse_num == list(verses.keys())[-1]:
-                            output_file.write(";\n")
-                        else:
-                            output_file.write(",\n")
-
-    if show_progress:
-        print("[+] SQL file created: " + out_name)
 
 
 if __name__ == '__main__':
