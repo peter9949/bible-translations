@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 BASE_URL = "https://biblia-online.pl"
 REQUEST_TIMEOUT = 20
 REQUEST_DELAY_SECONDS = 0.15
+REQUEST_RETRY_COUNT = 4
+REQUEST_RETRY_BACKOFF_SECONDS = 1.5
 
 # Canonical order used by existing repository outputs.
 BOOKS_ENGLISH = [
@@ -25,6 +27,7 @@ BOOKS_ENGLISH = [
 ]
 
 TRANSLATION_PRESETS = {
+    "BT": "Tysiaclecia",
     "BW": "Warszawska",
     "BG1632": "Gdanska",
     "BG1881": "BibliaGdanska1881",
@@ -39,9 +42,19 @@ VERSE_BLOCK_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 NEXT_CHAPTER_RE = re.compile(
-    r'href="(?P<href>/Biblia/(?P<translation>[^/]+)/(?P<slug>[^/]+)/(?P<chapter>\d+)/1)"[^>]*>Następny rozdział',
+    r'/Biblia/(?P<translation>[^/]+)/(?P<slug>[^/]+)/(?P<chapter>\d+)/1',
     re.IGNORECASE,
 )
+
+TYSIACLECIA_NON_CANONICAL_SLUGS = {
+    "Ksiega-Tobiasza",
+    "Ksiega-Judyty",
+    "1-Ksiega-Machabejska",
+    "2-Ksiega-Machabejska",
+    "Ksiega-Madrosci",
+    "Madrosc-Syracha",
+    "Ksiega-Barucha",
+}
 
 
 def clean_html_text(raw_html):
@@ -50,10 +63,39 @@ def clean_html_text(raw_html):
     return collapsed
 
 
-def http_get(session, url):
-    response = session.get(url, timeout=REQUEST_TIMEOUT)
-    response.raise_for_status()
-    return response.text
+def http_get(session, url, retries=REQUEST_RETRY_COUNT, retry_backoff_seconds=REQUEST_RETRY_BACKOFF_SECONDS):
+    last_error = None
+
+    for attempt in range(1, retries + 1):
+        try:
+            response = session.get(url, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+            return response.text
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt == retries:
+                break
+
+            wait_seconds = retry_backoff_seconds * attempt
+            print(
+                f"\n[+] Request failed ({attempt}/{retries}) for {url}: {exc}. "
+                f"Retrying in {wait_seconds:.1f}s..."
+            )
+            time.sleep(wait_seconds)
+
+    raise last_error
+
+
+def filter_to_canonical_slugs(slugs, translation_slug):
+    if len(slugs) <= 66:
+        return slugs
+
+    if translation_slug == "Tysiaclecia":
+        canonical = [slug for slug in slugs if slug not in TYSIACLECIA_NON_CANONICAL_SLUGS]
+        if len(canonical) == 66:
+            return canonical
+
+    return slugs
 
 
 def fetch_translation_books(session, translation_slug):
@@ -96,6 +138,8 @@ def fetch_translation_books(session, translation_slug):
             if book_slug not in slugs:
                 slugs.append(book_slug)
 
+        slugs = filter_to_canonical_slugs(slugs, translation_slug)
+
         if len(slugs) >= 66:
             ordered = []
             for idx in range(66):
@@ -133,16 +177,27 @@ def parse_chapter_verses(html):
 
 
 def extract_next_chapter_info(html):
-    match = NEXT_CHAPTER_RE.search(html)
-    if not match:
-        return None
+    soup = BeautifulSoup(html, "html.parser")
 
-    return {
-        "href": match.group("href"),
-        "translation": match.group("translation"),
-        "slug": match.group("slug"),
-        "chapter": int(match.group("chapter")),
-    }
+    for anchor in soup.select("a[href]"):
+        href = (anchor.get("href") or "").strip()
+        title = clean_html_text(anchor.get("title", ""))
+
+        if "następny rozdział" not in title.lower():
+            continue
+
+        match = NEXT_CHAPTER_RE.search(href)
+        if not match:
+            continue
+
+        return {
+            "href": href,
+            "translation": match.group("translation"),
+            "slug": match.group("slug"),
+            "chapter": int(match.group("chapter")),
+        }
+
+    return None
 
 
 def download_book(session, translation_slug, book_meta, sleep_seconds=REQUEST_DELAY_SECONDS):
@@ -228,6 +283,10 @@ def generate_progress_bar(progress, total, length=30):
     return f"[{'#' * done}{'-' * (length - done)}] {progress:2d}/{total}"
 
 
+def ensure_folder(path):
+    os.makedirs(path, exist_ok=True)
+
+
 def ensure_clean_folder(path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -240,6 +299,27 @@ def ensure_clean_folder(path):
             os.remove(file_path)
             removed += 1
     return removed
+
+
+def load_existing_book(file_path, expected_book_name):
+    if not os.path.isfile(file_path):
+        return None
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    chapters = data.get(expected_book_name)
+    if not isinstance(chapters, dict) or not chapters:
+        return None
+
+    for verses in chapters.values():
+        if isinstance(verses, dict) and verses:
+            return data
+
+    return None
 
 
 def resolve_translation_slug(args):
@@ -278,6 +358,26 @@ def main():
         default=REQUEST_DELAY_SECONDS,
         help="Delay between chapter requests in seconds.",
     )
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=REQUEST_RETRY_COUNT,
+        help="Retry count for failed HTTP requests.",
+    )
+    resume_group = parser.add_mutually_exclusive_group()
+    resume_group.add_argument(
+        "--resume",
+        dest="resume",
+        action="store_true",
+        help="Resume from existing book JSON files when present (default).",
+    )
+    resume_group.add_argument(
+        "--fresh",
+        dest="resume",
+        action="store_false",
+        help="Delete existing book JSON files before downloading.",
+    )
+    parser.set_defaults(resume=True)
     args = parser.parse_args()
 
     translation_code, translation_slug = resolve_translation_slug(args)
@@ -286,11 +386,15 @@ def main():
     books_folder = os.path.join(root_folder, f"{translation_code}_books")
     output_file = os.path.join(root_folder, f"{translation_code}_bible.json")
 
-    if not os.path.exists(root_folder):
-        os.makedirs(root_folder)
+    ensure_folder(root_folder)
+    ensure_folder(books_folder)
 
-    deleted_count = ensure_clean_folder(books_folder)
-    print(f"[+] Cleared {deleted_count} file(s) from {books_folder}")
+    if args.resume:
+        existing_count = len([name for name in os.listdir(books_folder) if name.endswith(".json")])
+        print(f"[+] Resume mode: keeping {existing_count} existing file(s) in {books_folder}")
+    else:
+        deleted_count = ensure_clean_folder(books_folder)
+        print(f"[+] Cleared {deleted_count} file(s) from {books_folder}")
 
     session = requests.Session()
     session.headers.update(
@@ -309,13 +413,32 @@ def main():
         books_meta = books_meta[: args.max_books]
 
     total = len(books_meta)
+    failed_books = []
     for idx, book_meta in enumerate(books_meta, start=1):
-        data = download_book(session, translation_slug, book_meta, sleep_seconds=args.delay)
-        if not data[book_meta["english"]]:
-            print(f"\n[+] Warning: no chapters found for {book_meta['english']} ({book_meta['slug']}).")
+        output_path = os.path.join(books_folder, f"{book_meta['english']}.json")
+        if args.resume and load_existing_book(output_path, book_meta["english"]) is not None:
+            print(
+                f"\r[+] Downloading {translation_code:<8} "
+                f"{generate_progress_bar(idx, total)} {book_meta['english'][:18]:<18} cached",
+                end="",
+            )
             continue
 
-        output_path = os.path.join(books_folder, f"{book_meta['english']}.json")
+        try:
+            data = download_book(session, translation_slug, book_meta, sleep_seconds=args.delay)
+        except requests.RequestException as exc:
+            failed_books.append(book_meta["english"])
+            print(
+                f"\n[+] Warning: failed while downloading {book_meta['english']} "
+                f"({book_meta['slug']}): {exc}"
+            )
+            continue
+
+        if not data[book_meta["english"]]:
+            print(f"\n[+] Warning: no chapters found for {book_meta['english']} ({book_meta['slug']}).")
+            failed_books.append(book_meta["english"])
+            continue
+
         with open(output_path, "w", encoding="utf-8") as handle:
             json.dump(data, handle, indent=2, ensure_ascii=False)
 
@@ -328,6 +451,9 @@ def main():
     print("\n[+] Download complete.")
     combine_books(books_folder, output_file, translation_code, translation_slug)
     print(f"[+] Combined output written to {output_file}")
+    if failed_books:
+        print(f"[+] Incomplete books ({len(failed_books)}): {', '.join(failed_books)}")
+        print("[+] Re-run with --resume to continue from the books already saved.")
 
 
 if __name__ == "__main__":

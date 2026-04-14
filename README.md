@@ -30,6 +30,9 @@ python biblia_online_polish.py --translation-code WUJ
 # Uwspółcześniona Biblia Gdańska
 python biblia_online_polish.py --translation-code UBG
 
+# Force a full redownload instead of resuming from existing book files
+python biblia_online_polish.py --translation-code UBG --fresh
+
 # Direct custom slug from biblia-online.pl
 python biblia_online_polish.py --translation-code CUSTOM --translation-slug Warszawska
 </code></pre>
@@ -38,6 +41,8 @@ python biblia_online_polish.py --translation-code CUSTOM --translation-slug Wars
 
 <ul>
   <li>This script uses HTML parsing (no public API was found).</li>
+  <li>By default the downloader resumes from existing per-book JSON files and retries failed requests.</li>
+  <li>Use <code>--fresh</code> if you want to clear the book folder and redownload everything from scratch.</li>
   <li>Please respect site terms, translation copyrights, and fair-use limits.</li>
   <li>Use <code>--max-books</code> for quick testing before full downloads.</li>
 </ul>
