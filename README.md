@@ -79,6 +79,56 @@ python german_bible_gateway.py --translation-code SCH2000 --fresh
 
 You can also pass a custom translation code with <code>--translation-code</code>.
 
+## French Translations via Multiple Sources
+
+If you want French Bible datasets, use <code>french_translations.py</code>.
+It supports multiple sources for the same translation:
+
+<ul>
+  <li><code>beblia</code> (XML files from Holy-Bible-XML-Format)</li>
+  <li><code>bible-com</code> (YouVersion GraphQL endpoint)</li>
+  <li><code>auto</code> (default: tries beblia first, then bible-com fallback)</li>
+</ul>
+
+### Quick start
+
+<pre><code>python french_translations.py --translation-code LSG
+</code></pre>
+
+<pre><code>pip install requests beautifulsoup4
+</code></pre>
+
+### Popular presets
+
+<ul>
+  <li>LSG - Louis Segond 1910</li>
+  <li>S21 - Segond 21</li>
+  <li>BDS - Bible du Semeur 2015</li>
+  <li>BFC - Bible en Francais Courant</li>
+  <li>PDV2017 - Parole de Vie 2017</li>
+  <li>NBS - Nouvelle Bible Segond</li>
+  <li>NEG79 - Nouvelle Edition de Geneve 1979</li>
+  <li>JND - J.N. Darby</li>
+  <li>OST - Ostervald</li>
+</ul>
+
+### Examples
+
+<pre><code># Force a specific source
+python french_translations.py --translation-code S21 --source beblia
+python french_translations.py --translation-code S21 --source bible-com
+
+# Run a quick smoke test
+python french_translations.py --translation-code LSG --max-books 1 --max-chapters 2
+
+# Force a full clean redownload
+python french_translations.py --translation-code BDS --fresh
+
+# Custom translation with explicit source parameters
+python french_translations.py --translation-code CUSTOM --source bible-com --bible-com-id 93
+python french_translations.py --translation-code CUSTOM --source beblia --beblia-file FrenchS21Bible.xml
+</code></pre>
+
 > [!WARNING]
 > Due to copyright issues, all formatted bible text has been removed from the repository. If you want to use the
 > formatted files, you will have to generate them yourself with the script.
