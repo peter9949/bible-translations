@@ -114,10 +114,11 @@ def generate_progress_bar(progress, total, length=20):
 
 def generate_bible(bible_translation, show_progress=True):
     # root
-    if not os.path.exists(bible_translation):
-        os.makedirs(bible_translation)
+    lang_root = os.path.join("english", bible_translation)
+    if not os.path.exists(lang_root):
+        os.makedirs(lang_root)
 
-    root = bible_translation + "/"
+    root = lang_root + "/"
     path = root + bible_translation + "_books"
     if not os.path.exists(path):
         os.makedirs(path)

@@ -47,6 +47,38 @@ python biblia_online_polish.py --translation-code CUSTOM --translation-slug Wars
   <li>Use <code>--max-books</code> for quick testing before full downloads.</li>
 </ul>
 
+## German Translations via BibleGateway
+
+If you want German Bible datasets, use <code>german_bible_gateway.py</code>.
+It scrapes the BibleGateway passage URL (<code>https://www.biblegateway.com/passage/</code>) and writes output into <code>german/&lt;CODE&gt;/</code>.
+
+### Quick start
+
+<pre><code>python german_bible_gateway.py
+</code></pre>
+
+<pre><code>pip install requests beautifulsoup4
+</code></pre>
+
+<pre><code># Download only first book for a quick smoke test
+python german_bible_gateway.py --translation-code SCH2000 --max-books 1
+
+# Force a clean full redownload
+python german_bible_gateway.py --translation-code SCH2000 --fresh
+</code></pre>
+
+### Presets (from BibleGateway versions page)
+
+<ul>
+  <li>SCH2000 - Schlachter 2000</li>
+  <li>SCH1951 - Schlachter 1951</li>
+  <li>LUTH1545 - Luther Bibel 1545</li>
+  <li>HOF - Hoffnung fur Alle</li>
+  <li>NGU-DE - Neue Genfer Ubersetzung (NT only)</li>
+</ul>
+
+You can also pass a custom translation code with <code>--translation-code</code>.
+
 > [!WARNING]
 > Due to copyright issues, all formatted bible text has been removed from the repository. If you want to use the
 > formatted files, you will have to generate them yourself with the script.

@@ -382,7 +382,7 @@ def main():
 
     translation_code, translation_slug = resolve_translation_slug(args)
 
-    root_folder = translation_code
+    root_folder = os.path.join("polish", translation_code)
     books_folder = os.path.join(root_folder, f"{translation_code}_books")
     output_file = os.path.join(root_folder, f"{translation_code}_bible.json")
 

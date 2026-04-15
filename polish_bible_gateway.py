@@ -132,7 +132,7 @@ def generate_progress_bar(progress, total, length=30):
 
 
 def generate_polish_bible(translation_code, books_to_download):
-    root_folder = translation_code
+    root_folder = os.path.join("polish", translation_code)
     books_folder = os.path.join(root_folder, f"{translation_code}_books")
 
     if not os.path.exists(root_folder):
